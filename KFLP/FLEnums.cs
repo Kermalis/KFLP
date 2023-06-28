@@ -46,6 +46,7 @@ internal enum FLMixerParamsEvent : byte
 	SlotState = 0x0,
 	SlotVolume = 0x1,
 	SlotDryWet = 0x2,
+	Unk_4A = 0x4A,
 	Unk_A4 = 0xA4,
 	Unk_A5 = 0xA5,
 	Unk_A6 = 0xA6,

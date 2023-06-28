@@ -7,7 +7,7 @@ namespace Kermalis.FLP;
 internal static class FLMixerParams
 {
 	private const int BYTES_PER_EVENT = 0xC;
-	// There are 4697 events:
+	// Normally there are 4697 events (more can be added, not sure why):
 	//             1 = Master Volume event
 	// 100*38 [3800] = Insert 0-99 events (includes Unk_A4, Unk_A5, Unk_A6, Unk_A7, Unk_A8, Unk_BE)
 	// 5*34    [170] = Insert 100-104 events (includes Unk_A8, Unk_BE)
@@ -83,15 +83,15 @@ internal static class FLMixerParams
 
 	public static string ReadData(byte[] bytes)
 	{
+		var str = new StringBuilder();
 		if (bytes.Length != LEN)
 		{
-			throw new InvalidDataException("Unexpected MixerParams length: " + bytes.Length);
+			str.AppendLine("Unexpected MixerParams length: " + bytes.Length);
 		}
 
 		using (var ms = new MemoryStream(bytes))
 		{
 			var r = new EndianBinaryReader(ms);
-			var str = new StringBuilder();
 
 			str.AppendLine("{");
 
