@@ -25,6 +25,7 @@ public sealed class FLProjectReader
 	private FLPlaylistTrack _curPlaylistTrack;
 	private int _curPlaylistTrackIndex;
 	private bool _pluginNameBelongsToChannel;
+	private bool _fl21;
 
 	public FLProjectReader(Stream s)
 	{
@@ -315,7 +316,7 @@ public sealed class FLProjectReader
 			}
 			case FLEvent.PlaylistItems:
 			{
-				_curArrangement.ReadPlaylistItems(bytes);
+				_curArrangement.ReadPlaylistItems(bytes, _fl21);
 				break;
 			}
 			case FLEvent.NewPlaylistTrack:
@@ -351,7 +352,12 @@ public sealed class FLProjectReader
 			if (IsUTF8(ev))
 			{
 				type = "UTF8";
-				str = DecodeString(Encoding.UTF8, bytes, out _);
+				str = DecodeString(Encoding.UTF8, bytes, out string raw);
+
+				if (ev == FLEvent.Version)
+				{
+					_fl21 = raw.StartsWith("21.");
+				}
 			}
 			else if (IsUTF16(ev))
 			{

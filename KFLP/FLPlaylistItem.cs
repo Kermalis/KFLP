@@ -5,7 +5,8 @@ namespace Kermalis.FLP;
 
 public sealed class FLPlaylistItem
 {
-	internal const int LEN = 32;
+	internal const int LEN_FL20 = 32;
+	internal const int LEN_FL21 = 60;
 
 	public uint AbsoluteTick;
 	public FLPattern? Pattern;
@@ -34,7 +35,7 @@ public sealed class FLPlaylistItem
 		EndTicksExclusive = duration;
 		PlaylistTrack = track;
 	}
-	internal FLPlaylistItem(EndianBinaryReader r)
+	internal FLPlaylistItem(EndianBinaryReader r, bool fl21)
 	{
 		AbsoluteTick = r.ReadUInt32();
 
@@ -68,6 +69,19 @@ public sealed class FLPlaylistItem
 
 		StartTicks = r.ReadUInt32();
 		EndTicksExclusive = r.ReadUInt32();
+
+		if (!fl21)
+		{
+			return;
+		}
+		// FL21: ???
+		r.ReadUInt32();
+		r.ReadUInt32();
+		r.ReadUInt32();
+		r.ReadUInt32();
+		r.ReadUInt32();
+		r.ReadSingle();
+		r.ReadUInt32();
 	}
 
 	internal void LoadObjects(FLProjectReader r, FLArrangement arr)

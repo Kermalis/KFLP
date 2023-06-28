@@ -41,17 +41,17 @@ public sealed class FLArrangement
 		PlaylistMarkers.Add(new FLPlaylistMarker(tick, num + "/" + denom, (num, denom)));
 	}
 
-	internal void ReadPlaylistItems(byte[] bytes)
+	internal void ReadPlaylistItems(byte[] bytes, bool fl21)
 	{
 		using (var ms = new MemoryStream(bytes))
 		{
 			var r = new EndianBinaryReader(ms);
 
-			int num = bytes.Length / FLPlaylistItem.LEN;
+			int num = bytes.Length / (fl21 ? FLPlaylistItem.LEN_FL21 : FLPlaylistItem.LEN_FL20);
 			PlaylistItems.Capacity = num;
 			for (int i = 0; i < num; i++)
 			{
-				PlaylistItems.Add(new FLPlaylistItem(r));
+				PlaylistItems.Add(new FLPlaylistItem(r, fl21));
 			}
 		}
 	}
@@ -65,7 +65,7 @@ public sealed class FLArrangement
 		PlaylistItems.Sort((p1, p2) => p1.AbsoluteTick.CompareTo(p2.AbsoluteTick));
 
 		w.WriteEnum(FLEvent.PlaylistItems);
-		FLProjectWriter.WriteArrayEventLength(w, (uint)PlaylistItems.Count * FLPlaylistItem.LEN);
+		FLProjectWriter.WriteArrayEventLength(w, (uint)PlaylistItems.Count * FLPlaylistItem.LEN_FL20);
 		foreach (FLPlaylistItem item in PlaylistItems)
 		{
 			item.Write(w);
