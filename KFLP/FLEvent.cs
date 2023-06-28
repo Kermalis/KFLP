@@ -201,7 +201,7 @@ internal enum FLEvent : byte
 	ProjectTime,
 	NewPlaylistTrack,
 	PlaylistTrackName,
-	PlaylistArrangementName = 241,
+	ArrangementName = 241,
 
 	MAX
 }

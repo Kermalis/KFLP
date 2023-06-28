@@ -1,5 +1,6 @@
 ﻿using Kermalis.EndianBinaryIO;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Kermalis.FLP;
 
@@ -18,6 +19,31 @@ public sealed class FLPattern
 	{
 		Notes = new List<FLPatternNote>();
 		Color = DefaultColor;
+	}
+
+	internal void LoadObjects(FLProjectReader r)
+	{
+		for (int i = 0; i < Notes.Count; i++)
+		{
+			FLPatternNote note = Notes[i];
+			note.ReadChannel = r.Channels[note.ReadChannelIndex];
+			Notes[i] = note;
+		}
+	}
+
+	internal void ReadPatternNotes(byte[] bytes)
+	{
+		using (var ms = new MemoryStream(bytes))
+		{
+			var r = new EndianBinaryReader(ms);
+
+			int num = bytes.Length / FLPatternNote.LEN;
+			Notes.Capacity = num;
+			for (int i = 0; i < num; i++)
+			{
+				Notes.Add(new FLPatternNote(r));
+			}
+		}
 	}
 
 	internal void WritePatternNotes(EndianBinaryWriter w)
@@ -56,5 +82,10 @@ public sealed class FLPattern
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_157, uint.MaxValue);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_158, uint.MaxValue);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_164, 0);
+	}
+
+	public override string ToString()
+	{
+		return Name ?? $"#{ID}";
 	}
 }

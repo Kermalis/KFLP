@@ -1,4 +1,5 @@
 ﻿using Kermalis.EndianBinaryIO;
+using System.IO;
 
 namespace Kermalis.FLP;
 
@@ -25,6 +26,65 @@ public sealed class FLPlaylistTrack
 		Index = index;
 		Color = DefaultColor;
 		Size = SIZE_DEFAULT;
+	}
+	internal void Read(byte[] bytes)
+	{
+		using (var ms = new MemoryStream(bytes))
+		{
+			var r = new EndianBinaryReader(ms);
+
+			r.ReadUInt16(); // ID
+
+			Color.R = r.ReadByte();
+			Color.G = r.ReadByte();
+			Color.B = r.ReadByte();
+			r.ReadByte(); // 0
+
+			Icon = r.ReadUInt32();
+
+			r.ReadByte(); // 1
+
+			Size = r.ReadSingle();
+
+			r.ReadInt32();
+
+			r.ReadByte(); // 0
+			r.ReadByte(); // 0
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			r.ReadByte(); // 0
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			r.ReadByte(); // 5
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			r.ReadBoolean(); // False
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			r.ReadBoolean(); // True
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			r.ReadByte(); // 0
+			r.ReadInt16(); // 0
+
+			r.ReadByte(); // 0
+			GroupWithAbove = r.ReadBoolean();
+			r.ReadInt16(); // 0
+
+			r.ReadInt32();
+
+			r.ReadInt32();
+			r.ReadInt32();
+
+			IsGroupCollapsed = !r.ReadBoolean();
+
+			r.ReadInt32();
+		}
 	}
 
 	internal void Write(EndianBinaryWriter w, FLVersionCompat verCom)
@@ -100,5 +160,10 @@ public sealed class FLPlaylistTrack
 		w.WriteBoolean(!IsGroupCollapsed);
 
 		w.WriteInt32(0); // Track Mode Instrument Track Options
+	}
+
+	public override string ToString()
+	{
+		return Name ?? $"#{ID}";
 	}
 }

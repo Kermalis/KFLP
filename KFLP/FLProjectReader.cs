@@ -1,5 +1,6 @@
 ﻿using Kermalis.EndianBinaryIO;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,20 @@ public sealed class FLProjectReader
 	public readonly ushort PPQN;
 	public readonly StringBuilder Log;
 
+	public FLProjectTime ProjectTime;
+	public uint FineTempo;
+
+	public readonly List<FLPattern> Patterns;
+	public readonly List<FLReadChannel> Channels;
+	public readonly List<FLArrangement> Arrangements;
+
+	private FLPattern _curPattern;
+	private FLReadChannel _curChannel;
+	private FLArrangement _curArrangement;
+	private FLPlaylistTrack _curPlaylistTrack;
+	private int _curPlaylistTrackIndex;
+	private bool _pluginNameBelongsToChannel;
+
 	public FLProjectReader(Stream s)
 	{
 		var r = new EndianBinaryReader(s, ascii: true);
@@ -18,8 +33,28 @@ public sealed class FLProjectReader
 		ReadHeaderChunk(r, out PPQN);
 
 		Log = new StringBuilder();
+		Patterns = new List<FLPattern>();
+		Channels = new List<FLReadChannel>();
+		Arrangements = new List<FLArrangement>();
+
+		_curPattern = null!;
+		_curChannel = null!;
+		_curArrangement = null!;
+		_curPlaylistTrack = null!;
 
 		ReadDataChunk(r);
+
+		foreach (FLPattern p in Patterns)
+		{
+			p.LoadObjects(this);
+		}
+		foreach (FLArrangement a in Arrangements)
+		{
+			foreach (FLPlaylistItem i in a.PlaylistItems)
+			{
+				i.LoadObjects(this, a);
+			}
+		}
 	}
 	private static void ReadHeaderChunk(EndianBinaryReader r, out ushort ppqn)
 	{
@@ -138,6 +173,59 @@ public sealed class FLProjectReader
 	{
 		switch (ev)
 		{
+			case FLEvent.NewChannel:
+			{
+				ushort index = (ushort)data;
+				FLReadChannel? o = Channels.Find(p => p.Index == index);
+				if (o is null)
+				{
+					o = new FLReadChannel(index);
+					Channels.Add(o);
+				}
+				_curChannel = o;
+				_pluginNameBelongsToChannel = true;
+				break;
+			}
+			case FLEvent.NewPattern:
+			{
+				ushort id = (ushort)data;
+				FLPattern? o = Patterns.Find(p => p.ID == id);
+				if (o is null)
+				{
+					o = new FLPattern
+					{
+						Index = (ushort)(id - 1),
+					};
+					Patterns.Add(o);
+				}
+				_curPattern = o;
+				break;
+			}
+			case FLEvent.NewInsertSlot:
+			{
+				_pluginNameBelongsToChannel = false;
+				break;
+			}
+			case FLEvent.NewArrangement:
+			{
+				ushort index = (ushort)data;
+				FLArrangement? o = Arrangements.Find(p => p.Index == index);
+				if (o is null)
+				{
+					o = new FLArrangement(string.Empty)
+					{
+						Index = index
+					};
+					Arrangements.Add(o);
+				}
+				_curArrangement = o;
+				_curPlaylistTrackIndex = 0;
+				break;
+			}
+		}
+
+		switch (ev)
+		{
 			case FLEvent.Fade_Stereo:
 			{
 				LogLine(string.Format("Word: {0} = 0x{1:X} ({2})", ev, data, (FLFadeStereo)data));
@@ -165,11 +253,26 @@ public sealed class FLProjectReader
 	{
 		switch (ev)
 		{
+			case FLEvent.FineTempo:
+			{
+				FineTempo = data;
+				break;
+			}
+		}
+
+		switch (ev)
+		{
 			case FLEvent.PluginColor:
 			case FLEvent.PatternColor:
 			case FLEvent.InsertColor:
 			{
-				LogLine(string.Format("DWord: {0} = 0x{1:X6} ({2})", ev, data, new FLColor3(data)));
+				var c = new FLColor3(data);
+				if (ev == FLEvent.PatternColor)
+				{
+					_curPattern.Color = c;
+				}
+
+				LogLine(string.Format("DWord: {0} = 0x{1:X6} ({2})", ev, data, c));
 				break;
 			}
 			case FLEvent.DelayReso:
@@ -198,6 +301,31 @@ public sealed class FLProjectReader
 	}
 	private void HandleEvent_Array(FLEvent ev, byte[] bytes)
 	{
+		switch (ev)
+		{
+			case FLEvent.ProjectTime:
+			{
+				ProjectTime = new FLProjectTime(bytes);
+				break;
+			}
+			case FLEvent.PatternNotes:
+			{
+				_curPattern.ReadPatternNotes(bytes);
+				break;
+			}
+			case FLEvent.PlaylistItems:
+			{
+				_curArrangement.ReadPlaylistItems(bytes);
+				break;
+			}
+			case FLEvent.NewPlaylistTrack:
+			{
+				_curPlaylistTrack = _curArrangement.PlaylistTracks[_curPlaylistTrackIndex++];
+				_curPlaylistTrack.Read(bytes);
+				break;
+			}
+		}
+
 		string type;
 		string str;
 
@@ -214,7 +342,7 @@ public sealed class FLProjectReader
 		else if (ev == FLEvent.ProjectTime)
 		{
 			type = "Bytes";
-			str = FLProjectTime.ReadData(bytes);
+			str = ProjectTime.ToString();
 		}
 		else
 		{
@@ -223,12 +351,32 @@ public sealed class FLProjectReader
 			if (IsUTF8(ev))
 			{
 				type = "UTF8";
-				str = DecodeString(Encoding.UTF8, bytes);
+				str = DecodeString(Encoding.UTF8, bytes, out _);
 			}
 			else if (IsUTF16(ev))
 			{
 				type = "UTF16";
-				str = DecodeString(Encoding.Unicode, bytes);
+				str = DecodeString(Encoding.Unicode, bytes, out string raw);
+
+				if (ev == FLEvent.PatternName)
+				{
+					_curPattern.Name = raw.Replace("\0", null);
+				}
+				else if (ev == FLEvent.PluginName)
+				{
+					if (_pluginNameBelongsToChannel)
+					{
+						_curChannel.Name = raw.Replace("\0", null);
+					}
+				}
+				else if (ev == FLEvent.ArrangementName)
+				{
+					_curArrangement.Name = raw.Replace("\0", null);
+				}
+				else if (ev == FLEvent.PlaylistTrackName)
+				{
+					_curPlaylistTrack.Name = raw.Replace("\0", null);
+				}
 			}
 			else
 			{
@@ -253,9 +401,10 @@ public sealed class FLProjectReader
 		Log.AppendLine(msg);
 	}
 
-	private static string DecodeString(Encoding e, byte[] bytes)
+	private static string DecodeString(Encoding e, byte[] bytes, out string raw)
 	{
-		string str = e.GetString(bytes)
+		raw = e.GetString(bytes);
+		string str = raw
 			.Replace("\0", "\\0")
 			.Replace("\r", "\\r")
 			.Replace("\n", "\\n");
@@ -332,7 +481,7 @@ public sealed class FLProjectReader
 			case FLEvent.RemoteCtrlFormula:
 			case FLEvent.ChanFilterName:
 			case FLEvent.PlaylistTrackName:
-			case FLEvent.PlaylistArrangementName:
+			case FLEvent.ArrangementName:
 			case FLEvent.PatternName:
 				return true;
 		}

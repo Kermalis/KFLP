@@ -84,16 +84,16 @@ internal static class FLMixerParams
 	public static string ReadData(byte[] bytes)
 	{
 		var str = new StringBuilder();
+		str.AppendLine("{");
+
 		if (bytes.Length != LEN)
 		{
-			str.AppendLine("Unexpected MixerParams length: " + bytes.Length);
+			str.AppendLine($"Unexpected MixerParams length: {bytes.Length}. Expected {LEN}");
 		}
 
 		using (var ms = new MemoryStream(bytes))
 		{
 			var r = new EndianBinaryReader(ms);
-
-			str.AppendLine("{");
 
 			while (ms.Position < ms.Length)
 			{

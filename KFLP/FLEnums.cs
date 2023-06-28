@@ -8,6 +8,19 @@ public enum FLVersionCompat : byte
 	V21_0_3__B3517,
 }
 
+[Flags]
+public enum FLPlaylistItemFlags : byte
+{
+	None = 0,
+	Unk_1 = 1 << 1,
+	Unk_2 = 1 << 2,
+	Unk_3 = 1 << 3,
+	Unk_4 = 1 << 4,
+	Disabled = 1 << 5,
+	Unk_6 = 1 << 6,
+	Selected = 1 << 7,
+}
+
 internal enum FLChannelType : byte
 {
 	Sampler,

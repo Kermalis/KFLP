@@ -34,12 +34,12 @@ public sealed partial class FLAutomation
 	public FLColor3 Color;
 	public readonly MyType Type;
 	/// <summary>Only null for Tempo</summary>
-	public readonly List<FLChannel>? Targets;
+	public readonly List<FLWriteChannel>? Targets;
 	public readonly List<Point> Points;
 	public FLChannelFilter Filter;
 	public int PitchBendOrTimeRange;
 
-	internal FLAutomation(string name, MyType type, List<FLChannel>? targets, FLChannelFilter filter)
+	internal FLAutomation(string name, MyType type, List<FLWriteChannel>? targets, FLChannelFilter filter)
 	{
 		Name = name;
 		Color = GetDefaultColor(type);
@@ -126,7 +126,7 @@ public sealed partial class FLAutomation
 		// No plugin params
 
 		FLProjectWriter.Write8BitEvent(w, FLEvent.ChannelIsEnabled, 1);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.Delay, FLChannel.Delay);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.Delay, FLWriteChannel.Delay);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.DelayReso, 0x800_080);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Reverb, 0x10_000);
 		FLProjectWriter.Write16BitEvent(w, FLEvent.ShiftDelay, 0);
@@ -143,7 +143,7 @@ public sealed partial class FLAutomation
 		FLProjectWriter.Write16BitEvent(w, FLEvent.Fade_Stereo, (ushort)FLFadeStereo.None);
 		FLProjectWriter.Write8BitEvent(w, FLEvent.TargetFXTrack, 0);
 		FLBasicChannelParams.WriteAutomation(w);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChanOfsLevels, FLChannel.ChanOfsLevels);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChanOfsLevels, FLWriteChannel.ChanOfsLevels);
 		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChanPoly, ChanPoly);
 		FLChannelParams.WriteAutomation(w, PitchBendOrTimeRange);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.CutCutBy, 0);
@@ -151,13 +151,13 @@ public sealed partial class FLAutomation
 		FLProjectWriter.Write32BitEvent(w, FLEvent.ChanFilterNum, Filter.Index);
 		WriteAutomationData(w, ppqn);
 		FLProjectWriter.Write8BitEvent(w, FLEvent.Unk_32, 0);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelTracking, FLChannel.Tracking0);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelTracking, FLChannel.Tracking1);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLChannel.EnvelopeOther);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLChannel.Envelope1);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLChannel.EnvelopeOther);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLChannel.EnvelopeOther);
-		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLChannel.EnvelopeOther);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelTracking, FLWriteChannel.Tracking0);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelTracking, FLWriteChannel.Tracking1);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLWriteChannel.EnvelopeOther);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLWriteChannel.Envelope1);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLWriteChannel.EnvelopeOther);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLWriteChannel.EnvelopeOther);
+		FLProjectWriter.WriteArrayEventWithLength(w, FLEvent.ChannelEnvelope, FLWriteChannel.EnvelopeOther);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.ChannelSampleFlags, 0b0011);
 		FLProjectWriter.Write8BitEvent(w, FLEvent.ChannelLoopType, 0);
 	}
@@ -217,7 +217,7 @@ public sealed partial class FLAutomation
 		}
 		else
 		{
-			foreach (FLChannel target in Targets!)
+			foreach (FLWriteChannel target in Targets!)
 			{
 				WriteAutomationConnection(w, target.Index);
 			}

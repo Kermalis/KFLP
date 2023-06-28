@@ -3,23 +3,38 @@ using System;
 
 namespace Kermalis.FLP;
 
-internal struct FLProjectTime
+public readonly struct FLProjectTime
 {
 	private static DateTime BaseDate => new(1899, 12, 30);
 
-	public static string ReadData(byte[] bytes)
+	public readonly DateTime Creation;
+	public readonly TimeSpan TimeSpent;
+
+	public FLProjectTime(DateTime creation, TimeSpan timeSpent)
+	{
+		Creation = creation;
+		TimeSpent = timeSpent;
+	}
+	internal FLProjectTime(byte[] bytes)
 	{
 		double startOffset = EndianBinaryPrimitives.ReadDouble(bytes, Endianness.LittleEndian);
 		double daysWorked = EndianBinaryPrimitives.ReadDouble(bytes.AsSpan(8), Endianness.LittleEndian);
-		return string.Format("{{ Created: {0}, TimeSpent: {1} }}", BaseDate.AddDays(startOffset), TimeSpan.FromDays(daysWorked));
+
+		Creation = BaseDate.AddDays(startOffset);
+		TimeSpent = TimeSpan.FromDays(daysWorked);
 	}
 
-	public static void Write(EndianBinaryWriter w, DateTime creationDateTime, TimeSpan timeSpent)
+	internal void Write(EndianBinaryWriter w)
 	{
 		w.WriteEnum(FLEvent.ProjectTime);
 		FLProjectWriter.WriteArrayEventLength(w, 16);
 
-		w.WriteDouble((creationDateTime - BaseDate).TotalDays);
-		w.WriteDouble(timeSpent.TotalDays);
+		w.WriteDouble((Creation - BaseDate).TotalDays);
+		w.WriteDouble(TimeSpent.TotalDays);
+	}
+
+	public override string ToString()
+	{
+		return string.Format("{{ Created: {0}, TimeSpent: {1} }}", Creation, TimeSpent);
 	}
 }

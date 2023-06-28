@@ -3,7 +3,7 @@ using System;
 
 namespace Kermalis.FLP;
 
-public sealed class FLChannel
+public sealed class FLWriteChannel
 {
 	/// <summary>Found in "Miscellaneous functions" of a channel. Automation channels have it too, despite that not being accessible in the GUI</summary>
 	internal static ReadOnlySpan<byte> Delay => new byte[20]
@@ -95,7 +95,7 @@ public sealed class FLChannel
 	public int PitchKnob;
 	public int PitchBendRange;
 
-	internal FLChannel(string name, byte midiChan, byte midiBank, byte midiProgram, FLChannelFilter filter)
+	internal FLWriteChannel(string name, byte midiChan, byte midiBank, byte midiProgram, FLChannelFilter filter)
 	{
 		Name = name;
 		Color = MIDIOutDefaultColor;

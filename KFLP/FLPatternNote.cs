@@ -8,7 +8,8 @@ public struct FLPatternNote
 
 	public uint AbsoluteTick;
 	public bool Slide;
-	public FLChannel Channel;
+	public FLReadChannel ReadChannel;
+	public FLWriteChannel WriteChannel;
 	/// <summary>Infinite => 0</summary>
 	public uint DurationTicks = 48;
 	public byte Key;
@@ -28,18 +29,49 @@ public struct FLPatternNote
 	/// <summary>-100 => 0x00, 0 => 0x80, +100 => 0xFF</summary>
 	public byte ModY = 0x80;
 
-	public FLPatternNote(FLChannel chan)
+	internal ushort ReadChannelIndex;
+
+	public FLPatternNote(FLWriteChannel chan)
 	{
-		Channel = chan;
+		ReadChannel = null!;
+		WriteChannel = chan;
+	}
+	internal FLPatternNote(EndianBinaryReader r)
+	{
+		AbsoluteTick = r.ReadUInt32();
+
+		Slide = r.ReadByte() == 8; // Not sure on the other values...
+		r.ReadByte(); // 0x40
+		ReadChannelIndex = r.ReadUInt16();
+		ReadChannel = null!;
+		WriteChannel = null!;
+
+		DurationTicks = r.ReadUInt32();
+		Key = r.ReadByte();
+		r.ReadByte(); // 0
+		r.ReadByte(); // 0
+		r.ReadByte(); // 0
+
+		Pitch = r.ReadByte();
+		r.ReadByte(); // 0
+		Release = r.ReadByte();
+		byte b = r.ReadByte();
+		Portamento = (b & 0x10) != 0;
+		Color = (byte)(b & 0xF);
+
+		Panpot = r.ReadByte();
+		Velocity = r.ReadByte();
+		ModX = r.ReadByte();
+		ModY = r.ReadByte();
 	}
 
-	public readonly void Write(EndianBinaryWriter w)
+	internal readonly void Write(EndianBinaryWriter w)
 	{
 		w.WriteUInt32(AbsoluteTick);
 
 		w.WriteByte((byte)(Slide ? 8 : 0));
 		w.WriteByte(0x40);
-		w.WriteUInt16(Channel.Index);
+		w.WriteUInt16(WriteChannel.Index);
 
 		w.WriteUInt32(DurationTicks);
 		w.WriteUInt32(Key);

@@ -44,7 +44,7 @@ public sealed class FLProjectWriter
 
 	public readonly FLInsert[] Inserts;
 	public readonly List<FLChannelFilter> ChannelFilters;
-	public readonly List<FLChannel> Channels;
+	public readonly List<FLWriteChannel> Channels;
 	public readonly List<FLAutomation> Automations;
 	public readonly List<FLPattern> Patterns;
 	public readonly List<FLArrangement> Arrangements;
@@ -65,7 +65,7 @@ public sealed class FLProjectWriter
 		TimeSigDenominator = 4;
 
 		ChannelFilters = new List<FLChannelFilter>();
-		Channels = new List<FLChannel>();
+		Channels = new List<FLWriteChannel>();
 		Automations = new List<FLAutomation>();
 		Patterns = new List<FLPattern>();
 		Arrangements = new List<FLArrangement>(1)
@@ -95,9 +95,9 @@ public sealed class FLProjectWriter
 		return f;
 	}
 
-	public FLChannel CreateChannel(string name, byte midiChan, byte midiBank, byte midiProgram, FLChannelFilter filter)
+	public FLWriteChannel CreateChannel(string name, byte midiChan, byte midiBank, byte midiProgram, FLChannelFilter filter)
 	{
-		var c = new FLChannel(name, midiChan, midiBank, midiProgram, filter);
+		var c = new FLWriteChannel(name, midiChan, midiBank, midiProgram, filter);
 		Channels.Add(c);
 		return c;
 	}
@@ -107,15 +107,15 @@ public sealed class FLProjectWriter
 		Automations.Add(a);
 		return a;
 	}
-	public FLAutomation CreateAutomation(string name, FLAutomation.MyType type, List<FLChannel> targets, FLChannelFilter filter)
+	public FLAutomation CreateAutomation(string name, FLAutomation.MyType type, List<FLWriteChannel> targets, FLChannelFilter filter)
 	{
 		var a = new FLAutomation(name, type, targets, filter);
 		Automations.Add(a);
 		return a;
 	}
-	public FLAutomation CreateAutomation(string name, FLAutomation.MyType type, FLChannel target, FLChannelFilter filter)
+	public FLAutomation CreateAutomation(string name, FLAutomation.MyType type, FLWriteChannel target, FLChannelFilter filter)
 	{
-		var a = new FLAutomation(name, type, new List<FLChannel>(1) { target }, filter);
+		var a = new FLAutomation(name, type, new List<FLWriteChannel>(1) { target }, filter);
 		Automations.Add(a);
 		return a;
 	}
@@ -145,7 +145,7 @@ public sealed class FLProjectWriter
 			ChannelFilters[i].Index = i;
 		}
 		ushort chanIndex = 0;
-		foreach (FLChannel c in Channels)
+		foreach (FLWriteChannel c in Channels)
 		{
 			c.Index = chanIndex++;
 		}
@@ -263,7 +263,7 @@ public sealed class FLProjectWriter
 		WriteUTF16EventWithLength(w, FLEvent.ProjectDataPath, "\0");
 		WriteUTF16EventWithLength(w, FLEvent.ProjectComment, "\0");
 		// ProjectURL would go here
-		FLProjectTime.Write(w, DateTime.Now, TimeSpan.Zero);
+		new FLProjectTime(DateTime.Now, TimeSpan.Zero).Write(w);
 
 		foreach (FLChannelFilter f in ChannelFilters)
 		{
@@ -357,7 +357,7 @@ public sealed class FLProjectWriter
 			a.WriteAutomationConnection(w);
 		}
 
-		foreach (FLChannel c in Channels)
+		foreach (FLWriteChannel c in Channels)
 		{
 			c.Write(w, VersionCompat);
 		}

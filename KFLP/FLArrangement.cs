@@ -1,5 +1,6 @@
 ﻿using Kermalis.EndianBinaryIO;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Kermalis.FLP;
 
@@ -40,10 +41,24 @@ public sealed class FLArrangement
 		PlaylistMarkers.Add(new FLPlaylistMarker(tick, num + "/" + denom, (num, denom)));
 	}
 
+	internal void ReadPlaylistItems(byte[] bytes)
+	{
+		using (var ms = new MemoryStream(bytes))
+		{
+			var r = new EndianBinaryReader(ms);
+
+			int num = bytes.Length / FLPlaylistItem.LEN;
+			PlaylistItems.Capacity = num;
+			for (int i = 0; i < num; i++)
+			{
+				PlaylistItems.Add(new FLPlaylistItem(r));
+			}
+		}
+	}
 	internal void Write(EndianBinaryWriter w, FLVersionCompat verCom)
 	{
 		FLProjectWriter.Write16BitEvent(w, FLEvent.NewArrangement, Index);
-		FLProjectWriter.WriteUTF16EventWithLength(w, FLEvent.PlaylistArrangementName, Name + '\0');
+		FLProjectWriter.WriteUTF16EventWithLength(w, FLEvent.ArrangementName, Name + '\0');
 		FLProjectWriter.Write8BitEvent(w, FLEvent.Unk_36, 0);
 
 		// Playlist Items. Must be in order of AbsoluteTick
@@ -67,5 +82,10 @@ public sealed class FLArrangement
 		{
 			track.Write(w, verCom);
 		}
+	}
+
+	public override string ToString()
+	{
+		return Name;
 	}
 }
