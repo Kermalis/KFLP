@@ -11,7 +11,7 @@ public sealed class FLPlaylistTrack
 	public static FLColor3 DefaultColor => new(72, 81, 86);
 
 	internal readonly ushort Index;
-	internal ushort ID => (ushort)(Index + 1);
+	public ushort ID => (ushort)(Index + 1);
 
 	public float Size;
 	public bool GroupWithAbove;

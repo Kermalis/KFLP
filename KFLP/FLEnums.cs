@@ -20,6 +20,19 @@ public enum FLPlaylistItemFlags : byte
 	Unk_6 = 1 << 6,
 	Selected = 1 << 7,
 }
+public enum FLPlaylistMarkerType : byte
+{
+	None = 0,
+	MarkerLoop = 1,
+	MarkerSkip = 2,
+	MarkerPause = 3,
+	Loop = 4,
+	Start = 5,
+	// 6 and 7 deprecated?
+	TimeSig = 8,
+	StartRecording = 9,
+	StopRecording = 10,
+}
 
 internal enum FLChannelType : byte
 {

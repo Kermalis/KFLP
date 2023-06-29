@@ -23,6 +23,7 @@ public sealed class FLProjectReader
 	private FLReadChannel _curChannel;
 	private FLArrangement _curArrangement;
 	private FLPlaylistTrack _curPlaylistTrack;
+	private FLPlaylistMarker _curPlaylistMarker;
 	private int _curPlaylistTrackIndex;
 	private bool _pluginNameBelongsToChannel;
 	private bool _fl21;
@@ -42,6 +43,7 @@ public sealed class FLProjectReader
 		_curChannel = null!;
 		_curArrangement = null!;
 		_curPlaylistTrack = null!;
+		_curPlaylistMarker = null!;
 
 		ReadDataChunk(r);
 
@@ -54,6 +56,13 @@ public sealed class FLProjectReader
 			foreach (FLPlaylistItem i in a.PlaylistItems)
 			{
 				i.LoadObjects(this, a);
+			}
+			foreach (FLPlaylistMarker pm in a.PlaylistMarkers)
+			{
+				if (pm.Type == FLPlaylistMarkerType.TimeSig && pm.TimeSig is null)
+				{
+					throw new Exception($"Failed to load time signature marker {pm}...");
+				}
 			}
 		}
 	}
@@ -112,11 +121,11 @@ public sealed class FLProjectReader
 
 			if (ev < FLEvent.NewChannel)
 			{
-				HandleEvent_8Bit(ev, data);
+				HandleEvent_8Bit(ev, (byte)data);
 			}
 			else if (ev is >= FLEvent.NewChannel and < FLEvent.PluginColor)
 			{
-				HandleEvent_16Bit(ev, data);
+				HandleEvent_16Bit(ev, (ushort)data);
 			}
 			else if (ev is >= FLEvent.PluginColor and < FLEvent.ChannelName)
 			{
@@ -152,8 +161,22 @@ public sealed class FLProjectReader
 
 		return data;
 	}
-	private void HandleEvent_8Bit(FLEvent ev, uint data)
+	private void HandleEvent_8Bit(FLEvent ev, byte data)
 	{
+		switch (ev)
+		{
+			case FLEvent.TimeSigMarkerNumerator:
+			{
+				_curPlaylistMarker.TimeSig = (data, _curPlaylistMarker.TimeSig?.denom ?? 0);
+				break;
+			}
+			case FLEvent.TimeSigMarkerDenominator:
+			{
+				_curPlaylistMarker.TimeSig = (_curPlaylistMarker.TimeSig?.num ?? 0, data);
+				break;
+			}
+		}
+
 		switch (ev)
 		{
 			case FLEvent.ChannelType:
@@ -170,17 +193,16 @@ public sealed class FLProjectReader
 			}
 		}
 	}
-	private void HandleEvent_16Bit(FLEvent ev, uint data)
+	private void HandleEvent_16Bit(FLEvent ev, ushort data)
 	{
 		switch (ev)
 		{
 			case FLEvent.NewChannel:
 			{
-				ushort index = (ushort)data;
-				FLReadChannel? o = Channels.Find(p => p.Index == index);
+				FLReadChannel? o = Channels.Find(p => p.Index == data);
 				if (o is null)
 				{
-					o = new FLReadChannel(index);
+					o = new FLReadChannel(data);
 					Channels.Add(o);
 				}
 				_curChannel = o;
@@ -189,13 +211,12 @@ public sealed class FLProjectReader
 			}
 			case FLEvent.NewPattern:
 			{
-				ushort id = (ushort)data;
-				FLPattern? o = Patterns.Find(p => p.ID == id);
+				FLPattern? o = Patterns.Find(p => p.ID == data);
 				if (o is null)
 				{
 					o = new FLPattern
 					{
-						Index = (ushort)(id - 1),
+						Index = (ushort)(data - 1),
 					};
 					Patterns.Add(o);
 				}
@@ -209,13 +230,12 @@ public sealed class FLProjectReader
 			}
 			case FLEvent.NewArrangement:
 			{
-				ushort index = (ushort)data;
-				FLArrangement? o = Arrangements.Find(p => p.Index == index);
+				FLArrangement? o = Arrangements.Find(p => p.Index == data);
 				if (o is null)
 				{
 					o = new FLArrangement(string.Empty)
 					{
-						Index = index
+						Index = data
 					};
 					Arrangements.Add(o);
 				}
@@ -257,6 +277,12 @@ public sealed class FLProjectReader
 			case FLEvent.FineTempo:
 			{
 				FineTempo = data;
+				break;
+			}
+			case FLEvent.NewTimeMarker:
+			{
+				_curPlaylistMarker = new FLPlaylistMarker(data);
+				_curArrangement.PlaylistMarkers.Add(_curPlaylistMarker);
 				break;
 			}
 		}
@@ -382,6 +408,10 @@ public sealed class FLProjectReader
 				else if (ev == FLEvent.PlaylistTrackName)
 				{
 					_curPlaylistTrack.Name = raw.Replace("\0", null);
+				}
+				else if (ev == FLEvent.TimeMarkerName)
+				{
+					_curPlaylistMarker.Name = raw.Replace("\0", null);
 				}
 			}
 			else
