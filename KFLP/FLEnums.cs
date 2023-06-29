@@ -33,15 +33,31 @@ public enum FLPlaylistMarkerType : byte
 	StartRecording = 9,
 	StopRecording = 10,
 }
+public enum FLAutomationPointCurveType : byte
+{
+	SingleCurve = 0,
+	DoubleCurve = 1,
+	Hold = 2,
+	Stairs = 3,
+	SmoothStairs = 4,
+	Pulse = 5,
+	Wave = 6,
+	SingleCurve2 = 7,
+	DoubleCurve2 = 8,
+	HalfSine = 9,
+	Smooth = 10,
+	SingleCurve3 = 11,
+	DoubleCurve3 = 12,
+}
 
 internal enum FLChannelType : byte
 {
-	Sampler,
+	Sampler = 0,
 	/// <summary>Doesn't exist past FL12</summary>
-	TS404,
-	FLPlugin,
-	Layer,
-	// 4
+	TS404 = 1,
+	FruityWrapper = 2,
+	Layer = 3,
+	Audio = 4,
 	Automation = 5,
 }
 

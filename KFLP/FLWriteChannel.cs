@@ -112,7 +112,7 @@ public sealed class FLWriteChannel
 	internal void Write(EndianBinaryWriter w, FLVersionCompat verCom)
 	{
 		FLProjectWriter.Write16BitEvent(w, FLEvent.NewChannel, Index);
-		FLProjectWriter.Write8BitEvent(w, FLEvent.ChannelType, (byte)FLChannelType.FLPlugin);
+		FLProjectWriter.Write8BitEvent(w, FLEvent.ChannelType, (byte)FLChannelType.FruityWrapper);
 
 		FLProjectWriter.WriteUTF16EventWithLength(w, FLEvent.DefPluginName, "MIDI Out\0");
 		FLNewPlugin.WriteMIDIOut(w);

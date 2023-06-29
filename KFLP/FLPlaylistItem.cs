@@ -11,6 +11,7 @@ public sealed class FLPlaylistItem
 	public uint AbsoluteTick;
 	public FLPattern? Pattern;
 	public FLAutomation? Automation;
+	public FLReadChannel? ReadAutomation;
 	public uint StartTicks;
 	public uint EndTicksExclusive;
 	public FLPlaylistTrack PlaylistTrack;
@@ -92,7 +93,7 @@ public sealed class FLPlaylistItem
 		}
 		if (_readAutomationIndex != ushort.MaxValue)
 		{
-			// TODO: Automation
+			ReadAutomation = r.Channels.Find(a => a.Index == _readAutomationIndex);
 		}
 		PlaylistTrack = Array.Find(arr.PlaylistTracks, t => t.ID == _readPlaylistTrackID)!;
 	}

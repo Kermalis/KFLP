@@ -351,17 +351,17 @@ public sealed class FLProjectReader
 				_curPlaylistTrack.Read(bytes);
 				break;
 			}
+			case FLEvent.AutomationData:
+			{
+				_curChannel.AutoData = new FLAutomationData(bytes, PPQN);
+				break;
+			}
 		}
 
 		string type;
 		string str;
 
-		if (ev == FLEvent.AutomationData)
-		{
-			type = "Bytes";
-			str = FLAutomation.ReadData(bytes);
-		}
-		else if (ev == FLEvent.MixerParams)
+		if (ev == FLEvent.MixerParams)
 		{
 			type = "Bytes";
 			str = FLMixerParams.ReadData(bytes);

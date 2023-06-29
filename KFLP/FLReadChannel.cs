@@ -5,6 +5,7 @@ public sealed class FLReadChannel
 	internal readonly ushort Index;
 
 	public string Name;
+	public FLAutomationData? AutoData;
 
 	internal FLReadChannel(ushort index)
 	{
