@@ -364,7 +364,7 @@ public sealed class FLProjectWriter
 		// For some reason, pattern colors go between
 		foreach (FLPattern p in Patterns)
 		{
-			p.WriteColorAndNameIfNecessary(w);
+			p.WriteColorNameMarkers_IfNecessary(w);
 		}
 		//
 		foreach (FLAutomation a in Automations)

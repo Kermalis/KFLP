@@ -26,6 +26,7 @@ public sealed class FLProjectReader
 	private FLPlaylistMarker _curPlaylistMarker;
 	private int _curPlaylistTrackIndex;
 	private bool _pluginNameBelongsToChannel;
+	private bool _markerBelongsToPattern;
 	private bool _fl21;
 
 	public FLProjectReader(Stream s)
@@ -221,6 +222,7 @@ public sealed class FLProjectReader
 					Patterns.Add(o);
 				}
 				_curPattern = o;
+				_markerBelongsToPattern = true;
 				break;
 			}
 			case FLEvent.NewInsertSlot:
@@ -241,6 +243,7 @@ public sealed class FLProjectReader
 				}
 				_curArrangement = o;
 				_curPlaylistTrackIndex = 0;
+				_markerBelongsToPattern = false;
 				break;
 			}
 		}
@@ -282,7 +285,14 @@ public sealed class FLProjectReader
 			case FLEvent.NewTimeMarker:
 			{
 				_curPlaylistMarker = new FLPlaylistMarker(data);
-				_curArrangement.PlaylistMarkers.Add(_curPlaylistMarker);
+				if (_markerBelongsToPattern)
+				{
+					_curPattern.Markers.Add(_curPlaylistMarker);
+				}
+				else
+				{
+					_curArrangement.PlaylistMarkers.Add(_curPlaylistMarker);
+				}
 				break;
 			}
 		}

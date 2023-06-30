@@ -14,10 +14,12 @@ public sealed class FLPattern
 	public readonly List<FLPatternNote> Notes;
 	public FLColor3 Color;
 	public string? Name;
+	public readonly List<FLPlaylistMarker> Markers;
 
 	internal FLPattern()
 	{
 		Notes = new List<FLPatternNote>();
+		Markers = new List<FLPlaylistMarker>();
 		Color = DefaultColor;
 	}
 
@@ -60,11 +62,10 @@ public sealed class FLPattern
 			note.Write(w);
 		}
 	}
-	internal void WriteColorAndNameIfNecessary(EndianBinaryWriter w)
+	internal void WriteColorNameMarkers_IfNecessary(EndianBinaryWriter w)
 	{
-		// If you supply a name, you must supply a color
-		// But a color can be here with no name
-		if (Name is null && Color.Equals(DefaultColor))
+		// Nothing is written in this case:
+		if (Name is null && Markers.Count == 0 && Color.Equals(DefaultColor))
 		{
 			return;
 		}
@@ -81,6 +82,11 @@ public sealed class FLPattern
 		// Patterns don't have icons, and the preset name/colors don't affect it, so idk
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_157, uint.MaxValue);
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_158, uint.MaxValue);
+		// These go between for some reason...
+		foreach (FLPlaylistMarker m in Markers)
+		{
+			m.Write(w);
+		}
 		FLProjectWriter.Write32BitEvent(w, FLEvent.Unk_164, 0);
 	}
 
