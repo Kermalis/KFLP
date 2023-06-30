@@ -9,10 +9,13 @@ public sealed class FLPlaylistItem
 	internal const int LEN_FL21 = 60;
 
 	public uint AbsoluteTick;
+	public uint DurationTicks;
 	public FLPattern? Pattern;
 	public FLAutomation? Automation;
 	public FLReadChannel? ReadAutomation;
+	/// <summary>Is <see cref="uint.MaxValue"/> if unset for patterns, or -1f if unset for automations</summary>
 	public uint StartTicks;
+	/// <inheritdoc cref="StartTicks"/>
 	public uint EndTicksExclusive;
 	public FLPlaylistTrack PlaylistTrack;
 	public FLPlaylistItemFlags Flags;
@@ -22,18 +25,33 @@ public sealed class FLPlaylistItem
 	private readonly ushort _readAutomationIndex;
 	private readonly ushort _readPlaylistTrackID;
 
+	public float StartQuarters_Automation
+	{
+		get => BitConverter.UInt32BitsToSingle(StartTicks);
+		set => StartTicks = BitConverter.SingleToUInt32Bits(value);
+	}
+	public float EndQuartersExclusive_Automation
+	{
+		get => BitConverter.UInt32BitsToSingle(EndTicksExclusive);
+		set => EndTicksExclusive = BitConverter.SingleToUInt32Bits(value);
+	}
+
 	public FLPlaylistItem(uint tick, FLPattern pattern, uint duration, FLPlaylistTrack track)
 	{
 		AbsoluteTick = tick;
 		Pattern = pattern;
-		EndTicksExclusive = duration;
+		DurationTicks = duration;
+		StartTicks = uint.MaxValue;
+		EndTicksExclusive = uint.MaxValue;
 		PlaylistTrack = track;
 	}
 	public FLPlaylistItem(uint tick, FLAutomation a, uint duration, FLPlaylistTrack track)
 	{
 		AbsoluteTick = tick;
 		Automation = a;
-		EndTicksExclusive = duration;
+		DurationTicks = duration;
+		StartTicks = uint.MaxValue;
+		EndTicksExclusive = uint.MaxValue;
 		PlaylistTrack = track;
 	}
 	internal FLPlaylistItem(EndianBinaryReader r, bool fl21)
@@ -53,7 +71,7 @@ public sealed class FLPlaylistItem
 			_readAutomationIndex = u;
 		}
 
-		EndTicksExclusive = r.ReadUInt32();
+		DurationTicks = r.ReadUInt32();
 
 		_readPlaylistTrackID = (ushort)(FLArrangement.NUM_PLAYLIST_TRACKS - r.ReadUInt16());
 		PlaylistTrack = null!;
@@ -116,7 +134,7 @@ public sealed class FLPlaylistItem
 			throw new InvalidOperationException("Automation and Pattern were null");
 		}
 
-		w.WriteUInt32(EndTicksExclusive);
+		w.WriteUInt32(DurationTicks);
 
 		w.WriteUInt16((ushort)(FLArrangement.NUM_PLAYLIST_TRACKS - PlaylistTrack.ID));
 		w.WriteUInt16(0);
