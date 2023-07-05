@@ -11,11 +11,9 @@ public sealed class FLPlaylistMarker
 	public string Name;
 	public (byte num, byte denom)? TimeSig { get; internal set; }
 
-	public FLPlaylistMarker(uint ticks, string name, (byte, byte)? timeSig)
+	public FLPlaylistMarker(string name)
 	{
-		AbsoluteTicks = ticks;
 		Name = name;
-		TimeSig = timeSig;
 	}
 	internal FLPlaylistMarker(uint val)
 	{

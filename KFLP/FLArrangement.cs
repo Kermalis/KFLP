@@ -28,17 +28,26 @@ public sealed class FLArrangement
 		}
 	}
 
-	public void AddToPlaylist(FLPattern p, uint tick, uint duration, FLPlaylistTrack track)
+	public FLPlaylistItem AddToPlaylist(FLPattern p, uint tick, uint duration, FLPlaylistTrack track)
 	{
-		PlaylistItems.Add(new FLPlaylistItem(tick, p, duration, track));
+		var t = new FLPlaylistItem(tick, p, duration, track);
+		PlaylistItems.Add(t);
+		return t;
 	}
-	public void AddToPlaylist(FLAutomation a, uint tick, uint duration, FLPlaylistTrack track)
+	public FLPlaylistItem AddToPlaylist(FLAutomation a, uint tick, uint duration, FLPlaylistTrack track)
 	{
-		PlaylistItems.Add(new FLPlaylistItem(tick, a, duration, track));
+		var t = new FLPlaylistItem(tick, a, duration, track);
+		PlaylistItems.Add(t);
+		return t;
 	}
-	public void AddTimeSigMarker(uint tick, byte num, byte denom)
+	public FLPlaylistMarker AddTimeSigMarker(uint tick, byte num, byte denom)
 	{
-		PlaylistMarkers.Add(new FLPlaylistMarker(tick, num + "/" + denom, (num, denom)));
+		string name = string.Concat(num.ToString(), "/", denom.ToString());
+		var m = new FLPlaylistMarker(name);
+		m.SetAbsoluteTicks(tick);
+		m.SetType_TimeSig(num, denom);
+		PlaylistMarkers.Add(m);
+		return m;
 	}
 
 	internal void ReadPlaylistItems(byte[] bytes, bool fl21)
