@@ -1,4 +1,6 @@
-﻿namespace Kermalis.FLP;
+﻿using System;
+
+namespace Kermalis.FLP;
 
 public static class FLUtils
 {
@@ -16,5 +18,14 @@ public static class FLUtils
 	public static decimal LerpUnclamped(decimal a1, decimal a2, decimal b1, decimal b2, decimal value)
 	{
 		return b1 + ((value - a1) / (a2 - a1) * (b2 - b1));
+	}
+
+	public static float LinearToDecibels(float value)
+	{
+		return 20 * MathF.Log10(value);
+	}
+	public static float DecibelsToLinear(float dB)
+	{
+		return MathF.Pow(10, dB * 0.05f);
 	}
 }

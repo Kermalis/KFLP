@@ -26,14 +26,14 @@ public sealed class FLPlaylistItem
 	private readonly ushort _readChannelIndex;
 	private readonly ushort _readPlaylistTrackID;
 
-	/// <summary>-1 if unset</summary>
-	public float StartQuarters_Channel
+	/// <summary>-1 if unset. For AudioClips, this is in milliseconds. For Automations, this is in Quarters</summary>
+	public float Start_Channel
 	{
 		get => BitConverter.UInt32BitsToSingle(StartTicks);
 		set => StartTicks = BitConverter.SingleToUInt32Bits(value);
 	}
-	/// <inheritdoc cref="StartQuarters_Channel"/>
-	public float EndQuartersExclusive_Channel
+	/// <inheritdoc cref="Start_Channel"/>
+	public float EndExclusive_Channel
 	{
 		get => BitConverter.UInt32BitsToSingle(EndTicksExclusive);
 		set => EndTicksExclusive = BitConverter.SingleToUInt32Bits(value);
@@ -54,8 +54,8 @@ public sealed class FLPlaylistItem
 		WriteChannel = chan;
 		DurationTicks = duration;
 		PlaylistTrack = track;
-		StartQuarters_Channel = -1f;
-		EndQuartersExclusive_Channel = -1f;
+		Start_Channel = -1f;
+		EndExclusive_Channel = -1f;
 	}
 	internal FLPlaylistItem(EndianBinaryReader r, bool fl21)
 	{
@@ -92,18 +92,48 @@ public sealed class FLPlaylistItem
 		StartTicks = r.ReadUInt32();
 		EndTicksExclusive = r.ReadUInt32();
 
-		if (!fl21)
+		// FL21: AudioClip fade
+		if (fl21)
 		{
-			return;
+			r.ReadUInt32(); // 3
+			r.ReadSingle(); // [FadeIn MS]
+			r.ReadSingle(); // [FadeIn Tension]
+			r.ReadSingle(); // [FadeOut MS]
+			r.ReadSingle(); // [FadeOut Tension]
+			r.ReadSingle(); // [Gain Linear]
+			r.ReadByte(); // 0 = Unset | 1 = FadeIn manual | 2 = FadeOut manual | 3 = FadeIn/FadeOut manual
+			r.ReadByte(); // 0 = InSmooth/OutSmooth | 1 = InSingle/OutSmooth | 0x10 = InSmooth/OutSingle | 0x11 InSingle/OutSingle
+			r.ReadUInt16(); // 0
+
+			// Tension values
+			// -2,672,339.25         = -100%
+			//       -516.846741     =  -50%
+			//          0            =    0%
+			//          0.0186503213 =    1%
+			//          0.135149777  =    5%
+			//          0.4529542    =   10%
+			//          0.9958846    =   14%
+			//          1            =   14.02%
+			//          1.20027053   =   15%
+			//          2.95758343   =   20%
+			//          7.089901     =   25%
+			//         16.8070354    =   30%
+			//         39.6568565    =   35%
+			//         93.38817      =   40%
+			//        219.737213     =   45%
+			//        516.846741     =   50%
+			//      1,215.49915      =   55%
+			//      2,858.37866      =   60%
+			//      6,721.60645      =   65%
+			//     15,805.9785       =   70%
+			//     37,167.8555       =   75%
+			//     87,400.27         =   80%
+			//    205,521.688        =   85%
+			//    483,283.9          =   90%
+			//  1,136,441.25         =   95%
+			//  2,252,281.5          =   99%
+			//  2,672,339.25         =  100%
 		}
-		// FL21: ???
-		r.ReadUInt32();
-		r.ReadUInt32();
-		r.ReadUInt32();
-		r.ReadUInt32();
-		r.ReadUInt32();
-		r.ReadSingle();
-		r.ReadUInt32();
 	}
 
 	internal void LoadObjects(FLProjectReader r, FLArrangement arr)
@@ -119,7 +149,7 @@ public sealed class FLPlaylistItem
 		PlaylistTrack = Array.Find(arr.PlaylistTracks, t => t.ID == _readPlaylistTrackID)!;
 	}
 
-	internal void Write(EndianBinaryWriter w)
+	internal void Write(EndianBinaryWriter w, FLVersionCompat vercom)
 	{
 		w.WriteUInt32(AbsoluteTick);
 
@@ -153,13 +183,27 @@ public sealed class FLPlaylistItem
 
 		if (WriteChannel is not null)
 		{
-			w.WriteSingle(StartQuarters_Channel);
-			w.WriteSingle(EndQuartersExclusive_Channel);
+			w.WriteSingle(Start_Channel);
+			w.WriteSingle(EndExclusive_Channel);
 		}
 		else
 		{
 			w.WriteUInt32(StartTicks);
 			w.WriteUInt32(EndTicksExclusive);
+		}
+
+		// FL21: AudioClip fade
+		if (vercom >= FLVersionCompat.V21_0_3__B3517)
+		{
+			w.WriteUInt32(3);
+			w.WriteSingle(0f);
+			w.WriteSingle(0f);
+			w.WriteSingle(0f);
+			w.WriteSingle(0f);
+			w.WriteSingle(1f);
+			w.WriteByte(0);
+			w.WriteByte(0);
+			w.WriteUInt16(0);
 		}
 	}
 }

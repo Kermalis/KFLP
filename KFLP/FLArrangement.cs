@@ -65,10 +65,11 @@ public sealed class FLArrangement
 		PlaylistItems.Sort((p1, p2) => p1.AbsoluteTick.CompareTo(p2.AbsoluteTick));
 
 		w.WriteEnum(FLEvent.PlaylistItems);
-		FLProjectWriter.WriteArrayEventLength(w, (uint)PlaylistItems.Count * FLPlaylistItem.LEN_FL20);
+		int lenPer = verCom < FLVersionCompat.V21_0_3__B3517 ? FLPlaylistItem.LEN_FL20 : FLPlaylistItem.LEN_FL21;
+		FLProjectWriter.WriteArrayEventLength(w, (uint)PlaylistItems.Count * (uint)lenPer);
 		foreach (FLPlaylistItem item in PlaylistItems)
 		{
-			item.Write(w);
+			item.Write(w, verCom);
 		}
 
 		// Playlist Markers
