@@ -11,9 +11,10 @@ public sealed class FLPlaylistItem
 	public uint AbsoluteTick;
 	public uint DurationTicks;
 	public FLPattern? Pattern;
-	public FLAutomation? Automation;
-	public FLReadChannel? ReadAutomation;
-	/// <summary>Is <see cref="uint.MaxValue"/> if unset for patterns, or -1f if unset for automations</summary>
+	public FLAutomation? WriteChannel; // TODO: Support audio clip writing
+	/// <summary>Used for Automation or AudioClips</summary>
+	public FLReadChannel? ReadChannel;
+	/// <summary><see cref="uint.MaxValue"/> if unset (for patterns)</summary>
 	public uint StartTicks;
 	/// <inheritdoc cref="StartTicks"/>
 	public uint EndTicksExclusive;
@@ -22,15 +23,17 @@ public sealed class FLPlaylistItem
 
 	// TODO: Can make a struct that's used only while loading so all of the items don't contain this data. Same for other objects
 	private readonly ushort _readPatternID;
-	private readonly ushort _readAutomationIndex;
+	private readonly ushort _readChannelIndex;
 	private readonly ushort _readPlaylistTrackID;
 
-	public float StartQuarters_Automation
+	/// <summary>-1 if unset</summary>
+	public float StartQuarters_Channel
 	{
 		get => BitConverter.UInt32BitsToSingle(StartTicks);
 		set => StartTicks = BitConverter.SingleToUInt32Bits(value);
 	}
-	public float EndQuartersExclusive_Automation
+	/// <inheritdoc cref="StartQuarters_Channel"/>
+	public float EndQuartersExclusive_Channel
 	{
 		get => BitConverter.UInt32BitsToSingle(EndTicksExclusive);
 		set => EndTicksExclusive = BitConverter.SingleToUInt32Bits(value);
@@ -41,18 +44,18 @@ public sealed class FLPlaylistItem
 		AbsoluteTick = tick;
 		Pattern = pattern;
 		DurationTicks = duration;
+		PlaylistTrack = track;
 		StartTicks = uint.MaxValue;
 		EndTicksExclusive = uint.MaxValue;
-		PlaylistTrack = track;
 	}
-	public FLPlaylistItem(uint tick, FLAutomation a, uint duration, FLPlaylistTrack track)
+	public FLPlaylistItem(uint tick, FLAutomation chan, uint duration, FLPlaylistTrack track)
 	{
 		AbsoluteTick = tick;
-		Automation = a;
+		WriteChannel = chan;
 		DurationTicks = duration;
-		StartTicks = uint.MaxValue;
-		EndTicksExclusive = uint.MaxValue;
 		PlaylistTrack = track;
+		StartQuarters_Channel = -1f;
+		EndQuartersExclusive_Channel = -1f;
 	}
 	internal FLPlaylistItem(EndianBinaryReader r, bool fl21)
 	{
@@ -63,12 +66,12 @@ public sealed class FLPlaylistItem
 		if (u > 0x5000)
 		{
 			_readPatternID = (ushort)(u - 0x5000);
-			_readAutomationIndex = ushort.MaxValue;
+			_readChannelIndex = ushort.MaxValue;
 		}
 		else
 		{
 			_readPatternID = ushort.MaxValue;
-			_readAutomationIndex = u;
+			_readChannelIndex = u;
 		}
 
 		DurationTicks = r.ReadUInt32();
@@ -109,9 +112,9 @@ public sealed class FLPlaylistItem
 		{
 			Pattern = r.Patterns.Find(p => p.ID == _readPatternID)!;
 		}
-		if (_readAutomationIndex != ushort.MaxValue)
+		if (_readChannelIndex != ushort.MaxValue)
 		{
-			ReadAutomation = r.Channels.Find(a => a.Index == _readAutomationIndex);
+			ReadChannel = r.Channels.Find(a => a.Index == _readChannelIndex);
 		}
 		PlaylistTrack = Array.Find(arr.PlaylistTracks, t => t.ID == _readPlaylistTrackID)!;
 	}
@@ -121,9 +124,9 @@ public sealed class FLPlaylistItem
 		w.WriteUInt32(AbsoluteTick);
 
 		w.WriteUInt16(0x5000);
-		if (Automation is not null)
+		if (WriteChannel is not null)
 		{
-			w.WriteUInt16(Automation.Index);
+			w.WriteUInt16(WriteChannel.Index);
 		}
 		else if (Pattern is not null)
 		{
@@ -131,7 +134,7 @@ public sealed class FLPlaylistItem
 		}
 		else
 		{
-			throw new InvalidOperationException("Automation and Pattern were null");
+			throw new InvalidOperationException($"{nameof(WriteChannel)} and {nameof(Pattern)} were null");
 		}
 
 		w.WriteUInt32(DurationTicks);
@@ -148,14 +151,13 @@ public sealed class FLPlaylistItem
 		w.WriteByte(0x64); // 100
 		w.WriteUInt16(0x8080);
 
-		if (Automation is not null)
+		if (WriteChannel is not null)
 		{
-			w.WriteSingle(-1f);
-			w.WriteSingle(-1f);
+			w.WriteSingle(StartQuarters_Channel);
+			w.WriteSingle(EndQuartersExclusive_Channel);
 		}
 		else
 		{
-			// Both are uint.MaxValue if auto size
 			w.WriteUInt32(StartTicks);
 			w.WriteUInt32(EndTicksExclusive);
 		}
